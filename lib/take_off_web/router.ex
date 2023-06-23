@@ -22,6 +22,23 @@ defmodule TakeOffWeb.Router do
     get "/health-check", PageController, :health_check
   end
 
+  scope "/reservations", TakeOffWeb do
+    get "/", ReservationController, :value
+    get "/increment", ReservationController, :increment
+  end
+
+  scope "/flights", TakeOffWeb do
+    get "/", FlightController, :index
+    post "/", FlightController, :add
+    post "/reset", FlightController, :reset
+  end
+
+  scope "/alerts", TakeOffWeb do
+    get "/", AlertController, :index
+    post "/", AlertController, :add
+    post "/reset", AlertController, :reset
+  end
+
   # Other scopes may use custom stacks.
   # scope "/api", TakeOffWeb do
   #   pipe_through :api
