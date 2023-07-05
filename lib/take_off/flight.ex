@@ -11,6 +11,7 @@ defmodule TakeOff.Flight do
 
   def add(params) do
     Agent.update(__MODULE__, fn list -> list ++ [params] end)
+    TakeOff.Alert.notify(params)
   end
 
   def reset do

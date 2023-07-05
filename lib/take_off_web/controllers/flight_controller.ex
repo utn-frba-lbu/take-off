@@ -10,10 +10,18 @@ defmodule TakeOffWeb.FlightController do
     |> json(%{status: "ok", value: TakeOff.Flight.index()})
   end
 
-  def add(conn, %{"type" => type, "seats" => seats}) do
+  def add(conn,
+          %{
+            "type" => type,
+            "seats" => seats,
+            "datetime" => datetime,
+            "origin" => origin,
+            "destiny" => destiny,
+            "offer_duration" => offer_duration
+  }) do
     Logger.info("Adding flight: #{inspect type} #{inspect seats}")
 
-    TakeOff.Flight.add(%{type: type, seats: seats})
+    TakeOff.Flight.add(%{type: type, seats: seats, datetime: datetime, origin: origin, destiny: destiny, offer_duration: offer_duration})
     conn
     |> put_status(:ok)
     |> json(%{status: "ok"})

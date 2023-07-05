@@ -10,10 +10,10 @@ defmodule TakeOffWeb.AlertController do
     |> json(%{status: "ok", value: alerts})
   end
 
-  def add(conn, %{"user" => user, "date" => date}) do
-    Logger.info("Adding alert: #{inspect user} #{inspect date}")
+  def add(conn, %{"user" => user, "date" => date, "origin" => origin, "destiny" => destiny}) do
+    Logger.info("Adding alert: #{inspect user} #{inspect date} #{inspect origin} #{inspect destiny}")
 
-    TakeOff.Alert.add(%{user: user, date: date})
+    TakeOff.Alert.add(%{user: user, date: date, origin: origin, destiny: destiny})
     conn
     |> put_status(:ok)
     |> json(%{status: "ok"})
