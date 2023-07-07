@@ -23,8 +23,8 @@ defmodule TakeOffWeb.Router do
   end
 
   scope "/reservations", TakeOffWeb do
-    get "/", ReservationController, :value
-    get "/increment", ReservationController, :increment
+    # get "/", ReservationController, :value
+    post "/", ReservationController, :book
   end
 
   scope "/flights", TakeOffWeb do

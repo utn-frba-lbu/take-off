@@ -6,25 +6,29 @@ defmodule TakeOff.Flight do
     GenServer.start_link(__MODULE__, initial_value, name: __MODULE__)
   end
 
-  def index do
-    GenServer.call(__MODULE__, :index)
-  end
-
   def init(initial_value) do
     {:ok, initial_value}
   end
 
+  def index do
+    GenServer.call(__MODULE__, :index)
+  end
+
   def add(params) do
     Logger.info("Node list: #{inspect Node.list()}")
-    Node.list() |>
-    Enum.map(fn node ->
-      send({__MODULE__, node}, {:add, self(), params})
-    end)
     TakeOff.Alert.notify(params)
+    broadcast(:add, params)
+    GenServer.cast({TakeOff.BookingCoordinator, :"a@127.0.0.1"}, {:new_flight, self(), params})
   end
 
   def reset do
-    GenServer.cast(__MODULE__, :reset)
+    broadcast(:reset, [])
+  end
+
+  def broadcast(method, data) do
+    Enum.map([Node.self | Node.list], fn node ->
+      GenServer.cast({__MODULE__, node}, {method, self(), data})
+    end)
   end
 
   # SERVER METHODS
@@ -37,7 +41,7 @@ defmodule TakeOff.Flight do
     {:noreply, []}
   end
 
-  def handle_info({:add, _pid, params}, state) do
+  def handle_cast({:add, _pid, params}, state) do
     Logger.info("received handle_cast: #{inspect params}")
     {:noreply, [params | state]}
   end
