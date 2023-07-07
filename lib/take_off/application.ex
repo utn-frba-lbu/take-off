@@ -27,6 +27,7 @@ defmodule TakeOff.Application do
       {TakeOff.Reservation, 0},
       {TakeOff.Flight, []},
       {TakeOff.Alert, []},
+      {TakeOff.FlightConnector, 0},
       # Start a worker by calling: TakeOff.Worker.start_link(arg)
       # {TakeOff.Worker, arg}
     ]

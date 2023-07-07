@@ -1,5 +1,6 @@
 defmodule TakeOff.Flight do
   use Agent
+  require Logger
 
   def start_link(initial_value) do
     Agent.start_link(fn -> initial_value end, name: __MODULE__)
@@ -9,9 +10,16 @@ defmodule TakeOff.Flight do
     Agent.get(__MODULE__, & &1)
   end
 
-  def add(params) do
+  def create(params) do
+    Logger.info("Flight - Creating flight: #{inspect params}")
     Agent.update(__MODULE__, fn list -> list ++ [params] end)
     TakeOff.Alert.notify(params)
+    TakeOff.FlightConnector.broadcast(:flight, params)
+  end
+
+  def receive(params) do
+    Logger.info("Flight - Receiving flight: #{inspect params}")
+    Agent.update(__MODULE__, fn list -> list ++ [params] end)
   end
 
   def reset do
