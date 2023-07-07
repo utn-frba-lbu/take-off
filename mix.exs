@@ -19,7 +19,7 @@ defmodule TakeOff.MixProject do
   def application do
     [
       mod: {TakeOff.Application, []},
-      extra_applications: [:logger, :runtime_tools, :swarm]
+      extra_applications: [:logger, :runtime_tools]
     ]
   end
 
