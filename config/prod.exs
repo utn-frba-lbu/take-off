@@ -8,7 +8,7 @@ import Config
 config :take_off, TakeOffWeb.Endpoint, cache_static_manifest: "priv/static/cache_manifest.json"
 
 # Configures Swoosh API Client
-config :swoosh, api_client: Swoosh.ApiClient.Finch, finch_name: TakeOff.Finch
+# config :swoosh, api_client: Swoosh.ApiClient.Finch, finch_name: TakeOff.Finch
 
 # Do not print debug messages in production
 config :logger, level: :info
