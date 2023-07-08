@@ -35,9 +35,9 @@ defmodule TakeOff.BookingCoordinator do
     doable = Enum.all?(booking.seats, fn {type, amount} -> flight.seats[type] >= amount end)
 
     new_state = if doable do
-      Logger.info("booking is doable")
+      Logger.info("booking is doable for: #{inspect from}}}")
       # Send accepted
-      GenServer.cast({TakeOff.Reservation, from}, {:booking_accepted, self(), booking})
+      GenServer.cast(from, {:booking_accepted, self(), booking})
       # Update state
       updated_seats = Enum.map(flight.seats, fn {type, amount} ->
         # check if the booking want to book a seat of the current type
@@ -51,7 +51,7 @@ defmodule TakeOff.BookingCoordinator do
     else
       Logger.info("booking is not doable")
       # Send rejected
-      GenServer.cast({TakeOff.Reservation, from}, {:booking_denied, self(), booking})
+      GenServer.cast(from, {:booking_denied, self(), booking})
       state
     end
 
