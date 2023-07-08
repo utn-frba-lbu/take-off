@@ -24,7 +24,8 @@ defmodule TakeOff.Application do
       {Finch, name: TakeOff.Finch},
       # Start the Endpoint (http/https)
       TakeOffWeb.Endpoint,
-      {TakeOff.Reservation, 0},
+      {TakeOff.BookingCoordinator, []},
+      {TakeOff.Reservation, []},
       {TakeOff.Flight, []},
       {TakeOff.Alert, []},
       # Start a worker by calling: TakeOff.Worker.start_link(arg)
