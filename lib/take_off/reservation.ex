@@ -19,7 +19,9 @@ defmodule TakeOff.Reservation do
     # Nice to have: Check if the seat is available, raise if not
 
     # Send the booking attempt to the coordinator
-    GenServer.cast({TakeOff.BookingCoordinator, :"a@127.0.0.1"}, {:book, Process.whereis(__MODULE__), booking})
+    pid = TakeOff.BookingCoordinator.get_coordinator_pid()
+
+    GenServer.cast(pid, {:book, Process.whereis(__MODULE__), booking})
   end
 
   def broadcast(method, data, false) do

@@ -18,7 +18,8 @@ defmodule TakeOff.Flight do
     Logger.info("Node list: #{inspect Node.list()}")
     TakeOff.Alert.notify(params)
     broadcast(:add, params)
-    GenServer.cast({TakeOff.BookingCoordinator, :"a@127.0.0.1"}, {:new_flight, self(), params})
+
+    GenServer.cast(TakeOff.BookingCoordinator.get_coordinator_pid(), {:new_flight, self(), params})
   end
 
   def reset do

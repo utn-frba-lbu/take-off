@@ -8,7 +8,28 @@ defmodule TakeOff.BookingCoordinator do
 
   @spec init(any) :: {:ok, any}
   def init(initial_value) do
+    Horde.Registry.register(TakeOff.HordeRegistry, :coordinator, self())
     {:ok, initial_value}
+  end
+
+  def spawn() do
+    child_spec =
+      %{
+        id: :coordinator,
+        start: {__MODULE__, :start_link, [[]]},
+        restart: :transient, # TODO revisar
+      }
+
+    if get_coordinator_pid() == nil do
+      TakeOff.HordeSupervisor.start_child(child_spec)
+    end
+  end
+
+  def get_coordinator_pid() do
+    case Horde.Registry.lookup(TakeOff.HordeRegistry, :coordinator) do
+      [] -> nil
+      [{pid, _}] -> pid
+    end
   end
 
   def handle_cast({:new_flight, _pid, flight}, state) do

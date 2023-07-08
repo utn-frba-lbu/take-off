@@ -9,8 +9,8 @@ defmodule TakeOff.Application do
   def start(_type, _args) do
     topologies = [
       example: [
-        strategy: Cluster.Strategy.Epmd,
-        config: [hosts: [:"a@127.0.0.1", :"b@127.0.0.1"]],
+        strategy: Cluster.Strategy.Gossip,
+        # config: [hosts: [:"a@127.0.0.1", :"b@127.0.0.1"]],
       ]
     ]
 
@@ -24,10 +24,12 @@ defmodule TakeOff.Application do
       {Finch, name: TakeOff.Finch},
       # Start the Endpoint (http/https)
       TakeOffWeb.Endpoint,
-      {TakeOff.BookingCoordinator, []},
       {TakeOff.Reservation, []},
       {TakeOff.Flight, []},
       {TakeOff.Alert, []},
+      # Horde
+      TakeOff.HordeRegistry,
+      {TakeOff.HordeSupervisor, [strategy: :one_for_one, distribution_strategy: Horde.UniformDistribution, process_redistribution: :active]},
       # Start a worker by calling: TakeOff.Worker.start_link(arg)
       # {TakeOff.Worker, arg}
     ]
@@ -35,7 +37,11 @@ defmodule TakeOff.Application do
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: TakeOff.Supervisor]
-    Supervisor.start_link(children, opts)
+    result = Supervisor.start_link(children, opts)
+
+    spawn_result=TakeOff.BookingCoordinator.spawn()
+
+    result
   end
 
   # Tell Phoenix to update the endpoint configuration
