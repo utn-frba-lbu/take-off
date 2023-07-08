@@ -2,8 +2,8 @@ defmodule TakeOff.Flight do
   use GenServer
   require Logger
 
-  def start_link(initial_value) do
-    GenServer.start_link(__MODULE__, initial_value, name: __MODULE__)
+  def start_link(_) do
+    GenServer.start_link(__MODULE__, %{timestamp: nil, flights: []}, name: __MODULE__)
   end
 
   def init(initial_value) do
@@ -23,7 +23,7 @@ defmodule TakeOff.Flight do
   end
 
   def reset do
-    broadcast(:reset, [])
+    broadcast(:reset, nil)
   end
 
   def broadcast(method, data) do
@@ -39,7 +39,7 @@ defmodule TakeOff.Flight do
   end
 
   def handle_cast(:reset, _state) do
-    {:noreply, []}
+    {:noreply, %{updated: nil, flights: []}}
   end
 
   def handle_cast({:reset, _pid, new_state}, _state) do
@@ -49,6 +49,6 @@ defmodule TakeOff.Flight do
 
   def handle_cast({:add, _pid, params}, state) do
     Logger.info("received handle_cast: add #{inspect params}")
-    {:noreply, [params | state]}
+    {:noreply, %{updated: DateTime.utc_now(), flights: [params | state.flights]}}
   end
 end

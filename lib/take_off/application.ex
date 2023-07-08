@@ -25,7 +25,7 @@ defmodule TakeOff.Application do
       # Start the Endpoint (http/https)
       TakeOffWeb.Endpoint,
       {TakeOff.Reservation, []},
-      {TakeOff.Flight, []},
+      TakeOff.Flight,
       {TakeOff.Alert, []},
       # Horde
       TakeOff.HordeRegistry,
@@ -39,7 +39,7 @@ defmodule TakeOff.Application do
     opts = [strategy: :one_for_one, name: TakeOff.Supervisor]
     result = Supervisor.start_link(children, opts)
 
-    spawn_result=TakeOff.BookingCoordinator.spawn()
+    TakeOff.BookingCoordinator.spawn()
 
     result
   end

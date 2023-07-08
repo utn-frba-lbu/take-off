@@ -2,14 +2,27 @@ defmodule TakeOff.BookingCoordinator do
   use GenServer
   require Logger
 
-  def start_link(initial_value) do
-    GenServer.start_link(__MODULE__, initial_value, name: __MODULE__)
+  def start_link(_initial_value) do
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  @spec init(any) :: {:ok, any}
   def init(initial_value) do
     Horde.Registry.register(TakeOff.HordeRegistry, :coordinator, self())
-    {:ok, initial_value}
+    {:ok, initial_value, {:continue, :load_state}}
+  end
+
+  def handle_continue(:load_state, _args) do
+    state = Enum.reduce([Node.self | Node.list], %{timestamp: nil, flights: []}, fn node, acc ->
+      node_state = GenServer.call({TakeOff.Flight, node}, :index)
+
+      if acc.timestamp == nil or node_state.timestamp > acc.timestamp do
+        node_state
+      else
+        acc
+      end
+    end)
+
+    {:noreply, state}
   end
 
   def spawn() do
@@ -34,7 +47,7 @@ defmodule TakeOff.BookingCoordinator do
 
   def handle_cast({:new_flight, _pid, flight}, state) do
     Logger.info("received new flight: #{inspect flight}")
-    {:noreply, [flight | state]}
+    {:noreply, %{updated: DateTime.utc_now(), flights: [flight | state.flights]}}
   end
 
   # booking { user: "123", flight_id: 123, seats: {window: 10, middle: 5} }
@@ -51,11 +64,11 @@ defmodule TakeOff.BookingCoordinator do
     #     middle: 10
     #   }
     # }
-    flight_index = Enum.find_index(state, fn flight -> flight[:id] == booking[:flight_id] end)
-    flight = Enum.at(state, flight_index)
+    flight_index = Enum.find_index(state.flights, fn flight -> flight[:id] == booking[:flight_id] end)
+    flight = Enum.at(state.flights, flight_index)
     doable = Enum.all?(booking.seats, fn {type, amount} -> flight.seats[type] >= amount end)
 
-    new_state = if doable do
+    new_flights = if doable do
       Logger.info("booking is doable for: #{inspect from}}}")
       # Send accepted
       GenServer.cast(from, {:booking_accepted, self(), booking})
@@ -68,13 +81,15 @@ defmodule TakeOff.BookingCoordinator do
           {type, amount}
         end
       end)
-      List.replace_at(state, flight_index, %{flight | seats: Enum.into(updated_seats, %{})})
+      List.replace_at(state.flights, flight_index, %{flight | seats: Enum.into(updated_seats, %{})})
     else
       Logger.info("booking is not doable")
       # Send rejected
       GenServer.cast(from, {:booking_denied, self(), booking})
-      state
+      state.flights
     end
+
+    new_state = %{updated: DateTime.utc_now(), flights: new_flights}
 
     # Send the updated flights to all nodes
     broadcast_all_flights(new_state)
@@ -89,7 +104,7 @@ defmodule TakeOff.BookingCoordinator do
     end)
   end
 
-  def handle_call(:flights, _from, state) do
-    {:reply, state, state}
-  end
+  # def handle_call(:flights, _from, state) do
+  #   {:reply, state, state}
+  # end
 end
