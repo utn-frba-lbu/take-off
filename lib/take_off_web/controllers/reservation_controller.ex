@@ -26,7 +26,7 @@ defmodule TakeOffWeb.ReservationController do
       %{
         user: user,
         flight_id: flight_id,
-        seats: seats
+        seats: TakeOff.Util.keys_to_atoms(seats)
       }
     )
 
