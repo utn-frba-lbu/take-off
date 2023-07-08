@@ -19,6 +19,7 @@ defmodule TakeOff.BookingCoordinator do
   # booking { user: "123", flight_id: 123, seats: {window: 10, middle: 5} }
   def handle_cast({:book, from, booking}, state) do
     Logger.info("received booking attempt: #{inspect booking}")
+    Logger.info("booking attempt from: #{inspect from}")
 
     # Iterate over the state to find the flight
     # flight = {
@@ -36,7 +37,7 @@ defmodule TakeOff.BookingCoordinator do
     new_state = if doable do
       Logger.info("booking is doable")
       # Send accepted
-      GenServer.cast(from, {:booking_accepted, booking})
+      GenServer.cast({TakeOff.Reservation, from}, {:booking_accepted, self(), booking})
       # Update state
       updated_seats = Enum.map(flight.seats, fn {type, amount} ->
         # check if the booking want to book a seat of the current type
@@ -50,15 +51,18 @@ defmodule TakeOff.BookingCoordinator do
     else
       Logger.info("booking is not doable")
       # Send rejected
-      GenServer.cast(from, {:booking_denied, booking})
+      GenServer.cast({TakeOff.Reservation, from}, {:booking_denied, self(), booking})
       state
     end
+
+    # Send the updated flights to all nodes
+    broadcast_all_flights(new_state)
 
     {:noreply, new_state}
   end
 
-  def broadcast_all_flights do
-    flights = GenServer.call(__MODULE__, :flights)
+  def broadcast_all_flights(flights) do
+    Logger.info("broadcasting all flights")
     Enum.map([Node.self | Node.list], fn node ->
       GenServer.cast({TakeOff.Flight, node}, {:reset, self(), flights})
     end)

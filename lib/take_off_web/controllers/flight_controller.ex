@@ -7,7 +7,7 @@ defmodule TakeOffWeb.FlightController do
     Logger.info("Flights: #{inspect flights}")
     conn
     |> put_status(:ok)
-    |> json(%{status: "ok", value: TakeOff.Flight.index()})
+    |> json(%{status: "ok", value: flights})
   end
 
   def add(conn,

@@ -25,7 +25,7 @@ defmodule TakeOff.Application do
       # Start the Endpoint (http/https)
       TakeOffWeb.Endpoint,
       {TakeOff.BookingCoordinator, []},
-      {TakeOff.Reservation, 0},
+      {TakeOff.Reservation, []},
       {TakeOff.Flight, []},
       {TakeOff.Alert, []},
       # Start a worker by calling: TakeOff.Worker.start_link(arg)

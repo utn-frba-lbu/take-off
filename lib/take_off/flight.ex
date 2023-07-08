@@ -41,8 +41,13 @@ defmodule TakeOff.Flight do
     {:noreply, []}
   end
 
+  def handle_cast({:reset, _pid, new_state}, _state) do
+    Logger.info("received handle_cast: reset #{inspect new_state}")
+    {:noreply, new_state}
+  end
+
   def handle_cast({:add, _pid, params}, state) do
-    Logger.info("received handle_cast: #{inspect params}")
+    Logger.info("received handle_cast: add #{inspect params}")
     {:noreply, [params | state]}
   end
 end

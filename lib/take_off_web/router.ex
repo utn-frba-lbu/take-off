@@ -23,7 +23,7 @@ defmodule TakeOffWeb.Router do
   end
 
   scope "/reservations", TakeOffWeb do
-    # get "/", ReservationController, :value
+    get "/", ReservationController, :index
     post "/", ReservationController, :book
   end
 
