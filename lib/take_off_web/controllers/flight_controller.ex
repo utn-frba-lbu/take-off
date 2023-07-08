@@ -21,6 +21,10 @@ defmodule TakeOffWeb.FlightController do
   }) do
     Logger.info("Adding flight: #{inspect type} #{inspect seats}")
 
+    # Send info to channel
+    TakeOffWeb.Endpoint.broadcast!("test:flight", "new_msg", %{body: "New flight added!"})
+    # TakeOffWeb.Endpoint.broadcast("test:flight", "new_msg", %{body: "New flight added!"})
+
     TakeOff.Flight.add(%{type: type, seats: seats, datetime: datetime, origin: origin, destiny: destiny, offer_duration: offer_duration})
     conn
     |> put_status(:ok)

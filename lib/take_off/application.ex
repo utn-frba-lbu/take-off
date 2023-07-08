@@ -19,7 +19,8 @@ defmodule TakeOff.Application do
       # Start the Telemetry supervisor
       TakeOffWeb.Telemetry,
       # Start the PubSub system
-      {Phoenix.PubSub, name: TakeOff.PubSub},
+      # {Phoenix.PubSub, name: TakeOff.PubSub},
+      {Phoenix.PubSub, [name: TakeOff.PubSub, adapter: Phoenix.PubSub.PG2]},
       # Start Finch
       {Finch, name: TakeOff.Finch},
       # Start the Endpoint (http/https)

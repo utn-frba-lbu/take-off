@@ -2,6 +2,7 @@ defmodule TakeOff.Flight do
   use Agent
 
   def start_link(initial_value) do
+    TakeOffWeb.TestChannel.join("test:flight", %{"body" => "New flight added!"})
     Agent.start_link(fn -> initial_value end, name: __MODULE__)
   end
 
