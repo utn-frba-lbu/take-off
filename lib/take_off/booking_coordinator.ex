@@ -12,15 +12,22 @@ defmodule TakeOff.BookingCoordinator do
   end
 
   def handle_continue(:load_state, _args) do
-    state = Enum.reduce([Node.self | Node.list], %{timestamp: nil, flights: []}, fn node, acc ->
+    Logger.info("trying to load state")
+    state = Enum.reduce([Node.self | Node.list], %{updated_time: nil, flights: []}, fn node, acc ->
       node_state = GenServer.call({TakeOff.Flight, node}, :index)
 
-      if acc.timestamp == nil or node_state.timestamp > acc.timestamp do
+      if acc.updated_time == nil or node_state.updated_time > acc.updated_time do
         node_state
       else
         acc
       end
     end)
+
+    if state.updated_time != nil do
+      Logger.info("loaded state at #{inspect state.updated_time}")
+    else
+      Logger.info("no previous state found")
+    end
 
     {:noreply, state}
   end
@@ -47,7 +54,7 @@ defmodule TakeOff.BookingCoordinator do
 
   def handle_cast({:new_flight, _pid, flight}, state) do
     Logger.info("received new flight: #{inspect flight}")
-    {:noreply, %{updated: DateTime.utc_now(), flights: [flight | state.flights]}}
+    {:noreply, %{updated_time: DateTime.utc_now(), flights: [flight | state.flights]}}
   end
 
   # booking { user: "123", flight_id: 123, seats: {window: 10, middle: 5} }
@@ -89,7 +96,7 @@ defmodule TakeOff.BookingCoordinator do
       state.flights
     end
 
-    new_state = %{updated: DateTime.utc_now(), flights: new_flights}
+    new_state = %{updated_time: DateTime.utc_now(), flights: new_flights}
 
     # Send the updated flights to all nodes
     broadcast_all_flights(new_state)

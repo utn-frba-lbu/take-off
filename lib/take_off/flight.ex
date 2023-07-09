@@ -3,7 +3,7 @@ defmodule TakeOff.Flight do
   require Logger
 
   def start_link(_) do
-    GenServer.start_link(__MODULE__, %{timestamp: nil, flights: []}, name: __MODULE__)
+    GenServer.start_link(__MODULE__, %{updated_time: nil, flights: []}, name: __MODULE__)
   end
 
   def init(initial_value) do
@@ -39,7 +39,7 @@ defmodule TakeOff.Flight do
   end
 
   def handle_cast(:reset, _state) do
-    {:noreply, %{updated: nil, flights: []}}
+    {:noreply, %{updated_time: nil, flights: []}}
   end
 
   def handle_cast({:reset, _pid, new_state}, _state) do
@@ -49,6 +49,6 @@ defmodule TakeOff.Flight do
 
   def handle_cast({:add, _pid, params}, state) do
     Logger.info("received handle_cast: add #{inspect params}")
-    {:noreply, %{updated: DateTime.utc_now(), flights: [params | state.flights]}}
+    {:noreply, %{updated_time: DateTime.utc_now(), flights: [params | state.flights]}}
   end
 end
