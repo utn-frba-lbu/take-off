@@ -1,0 +1,1 @@
+PORT=4002 iex --name c@127.0.0.1 -S mix phx.server

@@ -8,6 +8,7 @@ defmodule TakeOff.BookingCoordinator do
 
   def init(initial_value) do
     Horde.Registry.register(TakeOff.HordeRegistry, :coordinator, self())
+    :net_kernel.monitor_nodes(true, node_type: :visible)
     {:ok, initial_value, {:continue, :load_state}}
   end
 
@@ -112,4 +113,22 @@ defmodule TakeOff.BookingCoordinator do
       GenServer.cast({TakeOff.Flight, node}, {:reset, self(), flights})
     end)
   end
+
+  @impl GenServer
+  @doc """
+  Handler that will be called when a node has joined the cluster.
+  """
+  def handle_info({:nodeup, node, _node_type}, state) do
+    GenServer.cast({TakeOff.Flight, node}, {:reset, self(), state})
+    {:noreply, state}
+  end
+
+  @impl GenServer
+  @doc """
+  Handler that will be called when a node has left the cluster.
+  """
+  def handle_info({:nodedown, node, _node_type}, state) do
+    {:noreply, state}
+  end
+
 end
