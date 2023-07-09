@@ -29,6 +29,8 @@ defmodule TakeOff.BookingCoordinator do
       Logger.info("no previous state found")
     end
 
+    broadcast_all_flights(state)
+
     {:noreply, state}
   end
 
@@ -110,8 +112,4 @@ defmodule TakeOff.BookingCoordinator do
       GenServer.cast({TakeOff.Flight, node}, {:reset, self(), flights})
     end)
   end
-
-  # def handle_call(:flights, _from, state) do
-  #   {:reply, state, state}
-  # end
 end
