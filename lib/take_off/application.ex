@@ -24,7 +24,7 @@ defmodule TakeOff.Application do
       {Finch, name: TakeOff.Finch},
       # Start the Endpoint (http/https)
       TakeOffWeb.Endpoint,
-      {TakeOff.Reservation, []},
+      TakeOff.Reservation,
       TakeOff.Flight,
       {TakeOff.Alert, []},
       # Horde
