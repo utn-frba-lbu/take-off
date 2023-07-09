@@ -2,8 +2,8 @@ defmodule TakeOff.Reservation do
   use GenServer
   require Logger
 
-  def start_link(initial_value) do
-    GenServer.start_link(__MODULE__, initial_value, name: __MODULE__)
+  def start_link(_initial_value) do
+    GenServer.start_link(__MODULE__, %{updated_time: nil, bookings: []}, name: __MODULE__)
   end
 
   def init(initial_value) do
@@ -37,7 +37,7 @@ defmodule TakeOff.Reservation do
     Logger.info("booking confirmed: #{inspect booking}")
     # Send the booking to all nodes
     broadcast(:new_booking, booking, false)
-    {:noreply, [booking | state]}
+    {:noreply, %{updated_time: DateTime.utc_now(), bookings: [booking | state.bookings]}}
   end
 
   # denial of a booking from the coordinator
@@ -48,8 +48,14 @@ defmodule TakeOff.Reservation do
 
   # notification of new booking confirmed by other nodes
   def handle_cast({:new_booking, _pid, booking}, state) do
-    Logger.info("mew booking received: #{inspect booking}")
-    {:noreply, [booking | state]}
+    Logger.info("new booking received: #{inspect booking}")
+    {:noreply, %{updated_time: DateTime.utc_now(), bookings: [booking | state.bookings]}}
+  end
+
+  # update all the reservations
+  def handle_cast({:update_bookings, _pid, new_state}, _state) do
+    Logger.info("received handle_cast: reset #{inspect new_state}")
+    {:noreply, new_state}
   end
 
   def handle_call(:index, _from, state) do

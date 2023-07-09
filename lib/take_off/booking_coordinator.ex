@@ -14,7 +14,7 @@ defmodule TakeOff.BookingCoordinator do
 
   def handle_continue(:load_state, _args) do
     Logger.info("trying to load state")
-    state = Enum.reduce([Node.self | Node.list], %{updated_time: nil, flights: []}, fn node, acc ->
+    flight_state = Enum.reduce([Node.self | Node.list], %{updated_time: nil, flights: []}, fn node, acc ->
       node_state = GenServer.call({TakeOff.Flight, node}, :index)
 
       if acc.updated_time == nil or node_state.updated_time > acc.updated_time do
@@ -24,14 +24,32 @@ defmodule TakeOff.BookingCoordinator do
       end
     end)
 
-    if state.updated_time != nil do
-      Logger.info("loaded state at #{inspect state.updated_time}")
+    if flight_state.updated_time != nil do
+      Logger.info("loaded flight state at #{inspect flight_state.updated_time}")
     else
-      Logger.info("no previous state found")
+      Logger.info("no previous flight state found")
     end
 
-    broadcast_all_flights(state)
+    reservation_state = Enum.reduce([Node.self | Node.list], %{updated_time: nil, bookings: []}, fn node, acc ->
+      node_state = GenServer.call({TakeOff.Reservation, node}, :index)
 
+      if acc.updated_time == nil or node_state.updated_time > acc.updated_time do
+        node_state
+      else
+        acc
+      end
+    end)
+
+    if reservation_state.updated_time != nil do
+      Logger.info("loaded reservation state at #{inspect reservation_state.updated_time}")
+    else
+      Logger.info("no previous reservation state found")
+    end
+
+    broadcast_all_flights(flight_state)
+    broadcast_all_reservations(reservation_state)
+
+    state = %{updated_time: DateTime.utc_now(), flights: flight_state.flights, bookings: reservation_state.bookings}
     {:noreply, state}
   end
 
@@ -57,7 +75,7 @@ defmodule TakeOff.BookingCoordinator do
 
   def handle_cast({:new_flight, _pid, flight}, state) do
     Logger.info("received new flight: #{inspect flight}")
-    {:noreply, %{updated_time: DateTime.utc_now(), flights: [flight | state.flights]}}
+    {:noreply, %{updated_time: DateTime.utc_now(), flights: [flight | state.flights], bookings: state.bookings}}
   end
 
   # booking { user: "123", flight_id: 123, seats: {window: 10, middle: 5} }
@@ -99,10 +117,10 @@ defmodule TakeOff.BookingCoordinator do
       state.flights
     end
 
-    new_state = %{updated_time: DateTime.utc_now(), flights: new_flights}
+    new_state = %{updated_time: DateTime.utc_now(), flights: new_flights, bookings: [booking | state.bookings]}
 
     # Send the updated flights to all nodes
-    broadcast_all_flights(new_state)
+    broadcast_all_flights(%{updated_time: new_state.updated_time, flights: new_flights})
 
     {:noreply, new_state}
   end
@@ -114,12 +132,20 @@ defmodule TakeOff.BookingCoordinator do
     end)
   end
 
+  def broadcast_all_reservations(reservations) do
+    Logger.info("broadcasting all reservations")
+    Enum.map([Node.self | Node.list], fn node ->
+      GenServer.cast({TakeOff.Reservation, node}, {:update_bookings, self(), reservations})
+    end)
+  end
+
   @impl GenServer
   @doc """
   Handler that will be called when a node has joined the cluster.
   """
   def handle_info({:nodeup, node, _node_type}, state) do
-    GenServer.cast({TakeOff.Flight, node}, {:reset, self(), state})
+    GenServer.cast({TakeOff.Flight, node}, {:reset, self(), state.flights})
+    GenServer.cast({TakeOff.Reservation, node}, {:update_bookings, self(), state.bookings})
     {:noreply, state}
   end
 
