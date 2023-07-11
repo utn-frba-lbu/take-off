@@ -15,11 +15,11 @@ defmodule TakeOff.Reservation do
   end
 
   # Reservation { user: "123", flight_id: 123, seats: {window: 10} }
-  def confirm_reservartion(booking) do
+  def confirm_reservation(booking) do
     # Nice to have: Check if the seat is available, raise if not
 
     # Send the booking attempt to the coordinator
-    pid = TakeOff.BookingCoordinator.get_coordinator_pid()
+    pid = TakeOff.BookingCoordinator.get_coordinator_pid(booking.flight_id)
 
     GenServer.cast(pid, {:book, Process.whereis(__MODULE__), booking})
   end

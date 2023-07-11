@@ -3,7 +3,7 @@ defmodule TakeOff.Flight do
   require Logger
 
   def start_link(_) do
-    GenServer.start_link(__MODULE__, %{updated_time: nil, flights: []}, name: __MODULE__)
+    GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
   end
 
   def init(initial_value) do
@@ -15,11 +15,16 @@ defmodule TakeOff.Flight do
   end
 
   def add(params) do
-    Logger.info("Node list: #{inspect Node.list()}")
-    TakeOff.Alert.notify(params)
-    broadcast(:add, params)
+    Logger.info("Adding flight: #{inspect params}")
 
-    GenServer.cast(TakeOff.BookingCoordinator.get_coordinator_pid(), {:new_flight, self(), params})
+    id = UUID.uuid4()
+    flight = Map.merge(params, %{id: id, status: :open, created_at: DateTime.utc_now(), updated_at: DateTime.utc_now()})
+
+    TakeOff.Alert.notify(flight)
+
+    broadcast(:add, flight)
+
+    TakeOff.BookingCoordinator.spawn(flight.id)
   end
 
   def reset do
@@ -38,17 +43,25 @@ defmodule TakeOff.Flight do
     {:reply, state, state}
   end
 
+  def handle_call({:get_by_id, flight_id}, _from, state) do
+    Logger.info("received handle_call: get_by_id #{inspect flight_id}")
+    Logger.info("state: #{inspect state}")
+    {:reply, Map.get(state, flight_id), state}
+  end
+
   def handle_cast(:reset, _state) do
-    {:noreply, %{updated_time: nil, flights: []}}
+    {:noreply, %{}}
   end
 
-  def handle_cast({:reset, _pid, new_state}, _state) do
-    Logger.info("received handle_cast: reset #{inspect new_state}")
-    {:noreply, new_state}
+  def handle_cast({:update, _pid, updated_flight}, state) do
+    Logger.info("received handle_cast: reset #{inspect updated_flight}")
+
+    {:noreply, Map.put(state, updated_flight.id, updated_flight)}
   end
 
-  def handle_cast({:add, _pid, params}, state) do
-    Logger.info("received handle_cast: add #{inspect params}")
-    {:noreply, %{updated_time: DateTime.utc_now(), flights: [params | state.flights]}}
+  def handle_cast({:add, _pid, new_flight}, state) do
+    Logger.info("received handle_cast: add #{inspect new_flight}")
+
+    {:noreply, Map.put(state, new_flight.id, new_flight)}
   end
 end

@@ -1,116 +1,111 @@
 defmodule TakeOff.BookingCoordinator do
+  alias ElixirSense.Log
   use GenServer
   require Logger
 
-  def start_link(_initial_value) do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  def start_link(flight_id) do
+    Logger.info("starting coordinator for flight #{flight_id}")
+    GenServer.start_link(__MODULE__, flight_id, name: String.to_atom("coordinator_#{flight_id}"))
   end
 
-  def init(initial_value) do
-    Horde.Registry.register(TakeOff.HordeRegistry, :coordinator, self())
+  def init(flight_id) do
+    Logger.info("initializing coordinator for flight #{inspect flight_id}")
+    Horde.Registry.register(TakeOff.HordeRegistry, {:coordinator, flight_id}, self())
     :net_kernel.monitor_nodes(true, node_type: :visible)
-    {:ok, initial_value, {:continue, :load_state}}
+    {:ok, %{flight_id: flight_id, status: :initializing}, {:continue, :load_state}}
   end
 
-  def handle_continue(:load_state, _args) do
+  def handle_continue(:load_state, state) do
     Logger.info("trying to load state")
-    state = Enum.reduce([Node.self | Node.list], %{updated_time: nil, flights: []}, fn node, acc ->
-      node_state = GenServer.call({TakeOff.Flight, node}, :index)
 
-      if acc.updated_time == nil or node_state.updated_time > acc.updated_time do
-        node_state
-      else
-        acc
-      end
-    end)
+    flight = Enum.map([Node.self | Node.list], fn node -> GenServer.call {TakeOff.Flight, node}, {:get_by_id, state[:flight_id]} end)
+      |> Enum.max_by(fn node_flight -> if node_flight, do: node_flight.updated_at, else: -1 end)
 
-    if state.updated_time != nil do
-      Logger.info("loaded state at #{inspect state.updated_time}")
-    else
-      Logger.info("no previous state found")
-    end
-
-    broadcast_all_flights(state)
-
-    {:noreply, state}
+    {:noreply, Map.merge(state, %{status: :ready, flight: flight})}
   end
 
-  def spawn() do
+  def spawn(flight_id) do
+    Logger.info("spawning coordinator for flight #{flight_id}")
     child_spec =
       %{
-        id: :coordinator,
-        start: {__MODULE__, :start_link, [[]]},
+        id: {:coordinator, flight_id},
+        start: {__MODULE__, :start_link, [flight_id]},
         restart: :transient, # TODO revisar
       }
-
-    if get_coordinator_pid() == nil do
+    coordinator_pid = get_coordinator_pid(flight_id)
+    Logger.info("coordinator_pid: #{inspect coordinator_pid}")
+    if get_coordinator_pid(flight_id) == nil do
+      Logger.info("starting child")
       TakeOff.HordeSupervisor.start_child(child_spec)
     end
   end
 
-  def get_coordinator_pid() do
-    case Horde.Registry.lookup(TakeOff.HordeRegistry, :coordinator) do
+  def get_coordinator_pid(flight_id) do
+    case Horde.Registry.lookup(TakeOff.HordeRegistry, {:coordinator, flight_id}) do
       [] -> nil
       [{pid, _}] -> pid
     end
   end
 
-  def handle_cast({:new_flight, _pid, flight}, state) do
-    Logger.info("received new flight: #{inspect flight}")
-    {:noreply, %{updated_time: DateTime.utc_now(), flights: [flight | state.flights]}}
-  end
-
   # booking { user: "123", flight_id: 123, seats: {window: 10, middle: 5} }
+  # TODO: hacerlo sincronico con handle_call
   def handle_cast({:book, from, booking}, state) do
     Logger.info("received booking attempt: #{inspect booking}")
     Logger.info("booking attempt from: #{inspect from}")
 
-    # Iterate over the state to find the flight
-    # flight = {
-    #   id: 123,
-    #   seats: {
-    #     window: 10,
-    #     aisle: 10,
-    #     middle: 10
-    #   }
-    # }
-    flight_index = Enum.find_index(state.flights, fn flight -> flight[:id] == booking[:flight_id] end)
-    flight = Enum.at(state.flights, flight_index)
-    doable = Enum.all?(booking.seats, fn {type, amount} -> flight.seats[type] >= amount end)
+    flight = state.flight
 
-    new_flights = if doable do
-      Logger.info("booking is doable for: #{inspect from}}}")
+    is_valid = Enum.all?(booking.seats, fn {type, amount} -> flight.seats[type] >= amount end)
+
+    updated_flight = if is_valid do
+      Logger.info("booking is valid for: #{inspect from}}}")
+
       # Send accepted
       GenServer.cast(from, {:booking_accepted, self(), booking})
-      # Update state
-      updated_seats = Enum.map(flight.seats, fn {type, amount} ->
-        # check if the booking want to book a seat of the current type
-        if booking.seats[type] do
-          {type, amount - booking.seats[type]}
-        else
-          {type, amount}
-        end
-      end)
-      List.replace_at(state.flights, flight_index, %{flight | seats: Enum.into(updated_seats, %{})})
+
+      update_flight(flight, booking.seats)
     else
-      Logger.info("booking is not doable")
+      Logger.info("booking is not valid")
+
       # Send rejected
       GenServer.cast(from, {:booking_denied, self(), booking})
-      state.flights
+      flight
     end
 
-    new_state = %{updated_time: DateTime.utc_now(), flights: new_flights}
+    new_state = Map.merge(state, %{flight: updated_flight})
 
-    # Send the updated flights to all nodes
-    broadcast_all_flights(new_state)
+    # Send the updated flight to all nodes
+    broadcast_flight(updated_flight)
 
-    {:noreply, new_state}
+    # TODO: notify subscription process if flight is full
+    if updated_flight.status == :closed do
+      Logger.info("flight is full, killing coordinator")
+
+      {:stop, :normal, new_state}
+    else
+      {:noreply, new_state}
+    end
   end
 
-  def broadcast_all_flights(flights) do
-    Logger.info("broadcasting all flights")
+  def update_flight(flight, seats) do
+    # Update state
+    updated_seats = Enum.map(flight.seats, fn {type, amount} ->
+      if seats[type] do
+        {type, amount - seats[type]}
+      else
+        {type, amount}
+      end
+    end)
+
+    updated_status = if Enum.all?(updated_seats, fn {_, amount} -> amount == 0 end), do: :closed, else: flight.status
+
+    Map.merge(flight, %{updated_at: DateTime.utc_now(), seats: Enum.into(updated_seats, %{}), status: updated_status})
+  end
+
+  def broadcast_flight(flight) do
+    Logger.info("broadcasting all flight")
     Enum.map([Node.self | Node.list], fn node ->
-      GenServer.cast({TakeOff.Flight, node}, {:reset, self(), flights})
+      GenServer.cast({TakeOff.Flight, node}, {:update, self(), flight})
     end)
   end
 

@@ -15,10 +15,10 @@ defmodule TakeOff.Alert do
   end
 
   def notify(flight) do
-    %{origin: origin, destiny: destiny, datetime: datetime} = flight
+    %{origin: origin, destination: destination, datetime: datetime} = flight
     # TODO: vamos a buscar por date, y el vuelo es por datetime, FIXEAR
-    result = Enum.filter(TakeOff.Alert.index, fn %{origin: alert_origin, destiny: alert_destiny, date: alert_date} ->
-      origin == alert_origin && destiny == alert_destiny && datetime == alert_date
+    result = Enum.filter(TakeOff.Alert.index, fn %{origin: alert_origin, destination: alert_destination, date: alert_date} ->
+      origin == alert_origin && destination == alert_destination && datetime == alert_date
     end)
     Logger.info("Notify flight: #{inspect result}")
   end

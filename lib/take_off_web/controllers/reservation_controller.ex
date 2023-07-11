@@ -18,7 +18,7 @@ defmodule TakeOffWeb.ReservationController do
     }
   ) do
     Logger.info("booking: #{inspect seats}")
-    TakeOff.Reservation.confirm_reservartion(
+    TakeOff.Reservation.confirm_reservation(
       %{
         user: user,
         flight_id: flight_id,
