@@ -41,11 +41,4 @@ defmodule TakeOffWeb.FlightController do
     |> put_status(:bad_request)
     |> json(%{status: "error"})
   end
-
-  def reset(conn, _) do
-    TakeOff.Flight.reset()
-    conn
-    |> put_status(:ok)
-    |> json(%{status: "ok"})
-  end
 end
