@@ -37,6 +37,10 @@ defmodule TakeOff.Flight do
     end)
   end
 
+  def get_by_id(flight_id) do
+    GenServer.call(__MODULE__, {:get_by_id, flight_id})
+  end
+
   # SERVER METHODS
 
   def handle_call(:index, _from, state) do

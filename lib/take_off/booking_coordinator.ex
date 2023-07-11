@@ -60,42 +60,29 @@ defmodule TakeOff.BookingCoordinator do
   end
 
   # booking { user: "123", flight_id: 123, seats: {window: 10, middle: 5} }
-  # TODO: hacerlo sincronico con handle_call
-  def handle_cast({:book, from, booking}, state) do
+  def handle_call({:book, booking}, _from, state) do
     Logger.info("received booking attempt: #{inspect booking}")
-    Logger.info("booking attempt from: #{inspect from}")
 
     flight = state.flight
 
     is_valid = Enum.all?(booking.seats, fn {type, amount} -> flight.seats[type] >= amount end)
 
-    updated_flight = if is_valid do
-      Logger.info("booking is valid for: #{inspect from}}}")
-
-      # Send accepted
-      GenServer.cast(from, {:booking_accepted, self(), booking})
-
-      update_flight(flight, booking.seats)
-    else
-      Logger.info("booking is not valid")
-
-      # Send rejected
-      GenServer.cast(from, {:booking_denied, self(), booking})
-      flight
-    end
+    updated_flight = if is_valid, do: update_flight(flight, booking.seats), else: flight
 
     new_state = Map.merge(state, %{flight: updated_flight})
 
     # Send the updated flight to all nodes
     broadcast_flight(updated_flight)
 
+    response = if is_valid, do: :booking_accepted, else: :booking_denied
+
     # TODO: notify subscription process if flight is full
     if updated_flight.status == :closed do
       Logger.info("flight is full, killing coordinator")
 
-      {:stop, :normal, new_state}
+      {:stop, :normal, response, new_state}
     else
-      {:noreply, new_state}
+      {:reply, response, new_state}
     end
   end
 
