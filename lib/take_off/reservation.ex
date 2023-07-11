@@ -1,14 +1,13 @@
 defmodule TakeOff.Reservation do
-  alias Mix.Tasks.Phx.Gen
   use GenServer
   require Logger
 
   def start_link(initial_value) do
-    GenServer.start_link(__MODULE__, initial_value, name: __MODULE__)
+    GenServer.start_link(__MODULE__, %{status: :initializing,  bookings: []}, name: __MODULE__)
   end
 
   def init(initial_value) do
-    {:ok, initial_value}
+    {:ok, initial_value, {:continue, :load_state}}
   end
 
   def index do
@@ -50,12 +49,23 @@ defmodule TakeOff.Reservation do
 
   # SERVER METHODS
 
+  def handle_continue(:load_state, state) do
+    Logger.info("trying to load state")
+
+    bookings = Stream.map(Node.list, fn node -> GenServer.call({__MODULE__, node}, :index) end)
+      |> Enum.find([], fn bookings -> bookings != :initializing end)
+
+    # GOOD PERFORMS 👍 💯!
+
+    {:noreply, Map.merge(state, %{status: :ready, bookings: bookings})}
+  end
+
   # confirmation of a booking from the coordinator
   def handle_cast({:booking_accepted, booking}, state) do
     Logger.info("booking confirmed: #{inspect booking}")
     # Send the booking to all nodes
     broadcast(:new_booking, booking, false)
-    {:noreply, [booking | state]}
+    {:noreply, Map.merge(state, %{bookings: [booking | state.bookings]})}
   end
 
   # denial of a booking from the coordinator
@@ -67,10 +77,13 @@ defmodule TakeOff.Reservation do
   # notification of new booking confirmed by other nodes
   def handle_cast({:new_booking, _pid, booking}, state) do
     Logger.info("new booking received: #{inspect booking}")
-    {:noreply, [booking | state]}
+    {:noreply, Map.merge(state, %{bookings: [booking | state.bookings]})}
   end
 
   def handle_call(:index, _from, state) do
-    {:reply, state, state}
+    case state.status do
+      :initializing -> {:reply, :initializing, state}
+      :ready -> {:reply, state.bookings, state}
+    end
   end
 end
