@@ -21,7 +21,19 @@ defmodule TakeOff.BookingCoordinator do
     flight = Enum.map([Node.self | Node.list], fn node -> GenServer.call {TakeOff.Flight, node}, {:get_by_id, state[:flight_id]} end)
       |> Enum.max_by(fn node_flight -> if node_flight, do: node_flight.updated_at, else: -1 end)
 
+    time_to_close = DateTime.add(flight.created_at, flight.offer_duration, :second) |> DateTime.diff(DateTime.utc_now(), :millisecond)
+    :timer.send_after(time_to_close, :close_flight)
+
     {:noreply, Map.merge(state, %{status: :ready, flight: flight})}
+  end
+
+  def handle_info(:close_flight, state) do
+    Logger.info("closing flight #{inspect state[:flight_id]}")
+
+    new_flight = Map.merge(state.flight, %{status: :closed})
+    broadcast_flight(new_flight)
+
+    {:stop, :normal, Map.merge(state, %{flight: new_flight})}
   end
 
   def spawn(flight_id) do
