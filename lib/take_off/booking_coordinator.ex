@@ -86,7 +86,7 @@ defmodule TakeOff.BookingCoordinator do
     new_state = Map.merge(state, %{flight: updated_flight})
 
     # Send the updated flight to all nodes
-    broadcast_flight(updated_flight)
+    broadcast_flight(updated_flight) # TODO Maybe we can not send the flight if it is not updated
 
     response = if is_valid, do: :booking_accepted, else: :booking_denied
 

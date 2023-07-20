@@ -10,10 +10,10 @@ defmodule TakeOffWeb.AlertController do
     |> json(%{status: "ok", value: alerts})
   end
 
-  def add(conn, %{"user" => user, "date" => date, "origin" => origin, "destination" => destination}) do
+  def add(conn, %{"user" => user, "date" => date, "origin" => origin, "destination" => destination, "webhook_uri" => webhook_uri}) do
     Logger.info("Adding alert: #{inspect user} #{inspect date} #{inspect origin} #{inspect destination}")
 
-    TakeOff.Alert.add(%{user: user, date: date, origin: origin, destination: destination})
+    TakeOff.Alert.add(%{user: user, date: date, origin: origin, destination: destination, webhook_uri: webhook_uri})
     conn
     |> put_status(:ok)
     |> json(%{status: "ok"})

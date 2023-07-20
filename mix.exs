@@ -49,7 +49,9 @@ defmodule TakeOff.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:libcluster, "~> 3.3"},
       {:horde, "~> 0.8.3"},
-      {:uuid, "~>1.1.8"}
+      {:uuid, "~>1.1.8"},
+      {:poison, "~> 5.0"},
+      {:httpoison, "~> 2.0"}
     ]
   end
 
