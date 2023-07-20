@@ -10,7 +10,6 @@ defmodule TakeOff.Application do
     topologies = [
       example: [
         strategy: Cluster.Strategy.Gossip,
-        # config: [hosts: [:"a@127.0.0.1", :"b@127.0.0.1"]],
       ]
     ]
 

@@ -1,5 +1,4 @@
 defmodule TakeOff.BookingCoordinator do
-  alias ElixirSense.Log
   use GenServer
   require Logger
 
@@ -13,27 +12,6 @@ defmodule TakeOff.BookingCoordinator do
     Horde.Registry.register(TakeOff.HordeRegistry, {:coordinator, flight_id}, self())
     :net_kernel.monitor_nodes(true, node_type: :visible)
     {:ok, %{flight_id: flight_id, status: :initializing}, {:continue, :load_state}}
-  end
-
-  def handle_continue(:load_state, state) do
-    Logger.info("trying to load state")
-
-    flight = Enum.map([Node.self | Node.list], fn node -> GenServer.call {TakeOff.Flight, node}, {:get_by_id, state[:flight_id]} end)
-      |> Enum.max_by(fn node_flight -> if node_flight, do: node_flight.updated_at, else: -1 end)
-
-    time_to_close = DateTime.add(flight.created_at, flight.offer_duration, :day) |> DateTime.diff(DateTime.utc_now(), :millisecond)
-    :timer.send_after(time_to_close, :close_flight)
-
-    {:noreply, Map.merge(state, %{status: :ready, flight: flight})}
-  end
-
-  def handle_info(:close_flight, state) do
-    Logger.info("closing flight #{inspect state[:flight_id]}")
-
-    new_flight = Map.merge(state.flight, %{status: :closed})
-    broadcast_flight(new_flight)
-
-    {:stop, :normal, Map.merge(state, %{flight: new_flight})}
   end
 
   def spawn(flight_id) do
@@ -57,6 +35,42 @@ defmodule TakeOff.BookingCoordinator do
       [] -> nil
       [{pid, _}] -> pid
     end
+  end
+
+  def update_flight(flight, seats) do
+    # Update state
+    updated_seats = Enum.map(flight.seats, fn {type, amount} ->
+      if seats[type] do
+        {type, amount - seats[type]}
+      else
+        {type, amount}
+      end
+    end)
+
+    updated_status = if Enum.all?(updated_seats, fn {_, amount} -> amount == 0 end), do: :closed, else: flight.status
+
+    Map.merge(flight, %{updated_at: DateTime.utc_now(), seats: Enum.into(updated_seats, %{}), status: updated_status})
+  end
+
+  def broadcast_flight(flight) do
+    Logger.info("broadcasting all flight")
+    Enum.map([Node.self | Node.list], fn node ->
+      GenServer.cast({TakeOff.Flight, node}, {:update, self(), flight})
+    end)
+  end
+
+  # SERVER METHODS
+
+  def handle_continue(:load_state, state) do
+    Logger.info("trying to load state")
+
+    flight = Enum.map([Node.self | Node.list], fn node -> GenServer.call {TakeOff.Flight, node}, {:get_by_id, state[:flight_id]} end)
+      |> Enum.max_by(fn node_flight -> if node_flight, do: node_flight.updated_at, else: -1 end)
+
+    time_to_close = DateTime.add(flight.created_at, flight.offer_duration, :day) |> DateTime.diff(DateTime.utc_now(), :millisecond)
+    :timer.send_after(time_to_close, :close_flight)
+
+    {:noreply, Map.merge(state, %{status: :ready, flight: flight})}
   end
 
   # booking { user: "123", flight_id: 123, seats: {window: 10, middle: 5} }
@@ -86,43 +100,12 @@ defmodule TakeOff.BookingCoordinator do
     end
   end
 
-  def update_flight(flight, seats) do
-    # Update state
-    updated_seats = Enum.map(flight.seats, fn {type, amount} ->
-      if seats[type] do
-        {type, amount - seats[type]}
-      else
-        {type, amount}
-      end
-    end)
+  def handle_info(:close_flight, state) do
+    Logger.info("closing flight #{inspect state[:flight_id]}")
 
-    updated_status = if Enum.all?(updated_seats, fn {_, amount} -> amount == 0 end), do: :closed, else: flight.status
+    new_flight = Map.merge(state.flight, %{status: :closed})
+    broadcast_flight(new_flight)
 
-    Map.merge(flight, %{updated_at: DateTime.utc_now(), seats: Enum.into(updated_seats, %{}), status: updated_status})
+    {:stop, :normal, Map.merge(state, %{flight: new_flight})}
   end
-
-  def broadcast_flight(flight) do
-    Logger.info("broadcasting all flight")
-    Enum.map([Node.self | Node.list], fn node ->
-      GenServer.cast({TakeOff.Flight, node}, {:update, self(), flight})
-    end)
-  end
-
-  @impl GenServer
-  @doc """
-  Handler that will be called when a node has joined the cluster.
-  """
-  def handle_info({:nodeup, node, _node_type}, state) do
-    GenServer.cast({TakeOff.Flight, node}, {:reset, self(), state})
-    {:noreply, state}
-  end
-
-  @impl GenServer
-  @doc """
-  Handler that will be called when a node has left the cluster.
-  """
-  def handle_info({:nodedown, node, _node_type}, state) do
-    {:noreply, state}
-  end
-
 end

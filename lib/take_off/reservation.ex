@@ -2,7 +2,7 @@ defmodule TakeOff.Reservation do
   use GenServer
   require Logger
 
-  def start_link(initial_value) do
+  def start_link(_initial_value) do
     GenServer.start_link(__MODULE__, %{status: :initializing,  bookings: []}, name: __MODULE__)
   end
 
@@ -54,8 +54,6 @@ defmodule TakeOff.Reservation do
 
     bookings = Stream.map(Node.list, fn node -> GenServer.call({__MODULE__, node}, :index) end)
       |> Enum.find([], fn bookings -> bookings != :initializing end)
-
-    # GOOD PERFORMS 👍 💯!
 
     {:noreply, Map.merge(state, %{status: :ready, bookings: bookings})}
   end

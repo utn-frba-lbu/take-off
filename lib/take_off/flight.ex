@@ -46,8 +46,6 @@ defmodule TakeOff.Flight do
     flights = Stream.map(Node.list, fn node -> GenServer.call({__MODULE__, node}, :index) end)
       |> Enum.find(%{}, fn flights -> flights != :initializing end)
 
-    # GOOD PERFORMS 👍 💯
-
     Logger.info("flights: #{inspect flights}")
 
     {:noreply, Map.merge(state, %{status: :ready, flights: flights})}
