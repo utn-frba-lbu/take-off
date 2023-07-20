@@ -30,10 +30,6 @@ defmodule TakeOff.Alert do
     end)
   end
 
-  def reset do
-    Agent.update(__MODULE__, fn _ -> [] end)
-  end
-
   # SERVER METHODS
 
   def handle_continue(:load_state, state) do

@@ -66,7 +66,7 @@ defmodule TakeOff.Flight do
   end
 
   def handle_cast({:update, _pid, updated_flight}, state) do
-    Logger.info("received handle_cast: reset #{inspect updated_flight}")
+    Logger.info("received handle_cast: update #{inspect updated_flight}")
 
     flights = Map.put(state.flights, updated_flight.id, updated_flight)
     {:noreply, Map.merge(state, %{flights: flights})}

@@ -90,9 +90,9 @@ defmodule TakeOff.BookingCoordinator do
 
     response = if is_valid, do: :booking_accepted, else: :booking_denied
 
-    # TODO: notify subscription process if flight is full
     if updated_flight.status == :closed do
       Logger.info("flight is full, killing coordinator")
+      TakeOff.Subscription.notify(updated_flight)
 
       {:stop, :normal, response, new_state}
     else

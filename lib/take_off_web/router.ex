@@ -30,6 +30,7 @@ defmodule TakeOffWeb.Router do
   scope "/flights", TakeOffWeb do
     get "/", FlightController, :index
     post "/", FlightController, :add
+    post "/:id/subscriptions",  FlightController, :subscribe
   end
 
   scope "/alerts", TakeOffWeb do

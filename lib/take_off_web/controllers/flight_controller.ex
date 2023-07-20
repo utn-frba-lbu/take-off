@@ -41,4 +41,14 @@ defmodule TakeOffWeb.FlightController do
     |> put_status(:bad_request)
     |> json(%{status: "error"})
   end
+
+  def subscribe(conn, %{"id" => flight_id, "user" => user, "webhook_uri" => webhook_uri}) do
+    Logger.info("Subscribing user: #{inspect user} to flight #{inspect flight_id}")
+
+    TakeOff.Subscription.add(%{flight_id: flight_id, user: user, webhook_uri: webhook_uri})
+
+    conn
+    |> put_status(:ok)
+    |> json(%{status: "ok"})
+  end
 end

@@ -26,6 +26,7 @@ defmodule TakeOff.Application do
       {TakeOff.Reservation, []},
       TakeOff.Flight,
       {TakeOff.Alert, []},
+      TakeOff.Subscription,
       # Horde
       TakeOff.HordeRegistry,
       {TakeOff.HordeSupervisor, [strategy: :one_for_one, distribution_strategy: Horde.UniformDistribution, process_redistribution: :active]},
