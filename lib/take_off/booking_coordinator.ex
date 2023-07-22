@@ -19,7 +19,7 @@ defmodule TakeOff.BookingCoordinator do
       %{
         id: {:coordinator, flight_id},
         start: {__MODULE__, :start_link, [flight_id]},
-        restart: :transient, # TODO revisar
+        restart: :transient,
       }
     coordinator_pid = get_coordinator_pid(flight_id)
     Logger.info("coordinator_pid: #{inspect coordinator_pid}")
