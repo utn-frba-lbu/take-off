@@ -21,6 +21,8 @@ defmodule TakeOffWeb.FlightController do
   }) do
     Logger.info("Adding flight: #{inspect type} #{inspect seats}")
 
+    {:ok, datetime, _} = DateTime.from_iso8601(datetime)
+
     TakeOff.Flight.add(
       %{
         type: type,

@@ -57,10 +57,19 @@ defmodule TakeOff.Alert do
   end
 
   def handle_cast({:notify, flight}, state) do
-    %{origin: origin, destination: destination, datetime: datetime} = flight
-    # TODO: vamos a buscar por date, y el vuelo es por datetime, FIXEAR
-    result = Enum.filter(state.alerts, fn %{origin: alert_origin, destination: alert_destination, date: alert_date} ->
-      origin == alert_origin && destination == alert_destination && datetime == alert_date
+    %{origin: flight_origin, destination: flight_destination} = flight
+    flight_date = DateTime.to_date(flight.datetime)
+
+    result = Enum.filter(state.alerts, fn alert ->
+      %{origin: alert_origin, destination: alert_destination} = alert
+
+      flight_origin == alert_origin &&
+      flight_destination == alert_destination &&
+      case alert do
+        %{date: date} -> flight_date == date
+        %{month: month} -> flight_date |> Date.to_erl |> elem(1) == month
+      end
+
     end)
 
     Enum.map(result, fn alert ->

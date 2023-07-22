@@ -36,7 +36,6 @@ defmodule TakeOffWeb.Router do
   scope "/alerts", TakeOffWeb do
     get "/", AlertController, :index
     post "/", AlertController, :add
-    post "/reset", AlertController, :reset
   end
 
   # Other scopes may use custom stacks.
