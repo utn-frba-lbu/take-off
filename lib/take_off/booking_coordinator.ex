@@ -10,7 +10,6 @@ defmodule TakeOff.BookingCoordinator do
   def init(flight_id) do
     Logger.info("initializing coordinator for flight #{inspect flight_id}")
     Horde.Registry.register(TakeOff.HordeRegistry, {:coordinator, flight_id}, self())
-    :net_kernel.monitor_nodes(true, node_type: :visible)
     {:ok, %{flight_id: flight_id, status: :initializing}, {:continue, :load_state}}
   end
 
@@ -96,6 +95,7 @@ defmodule TakeOff.BookingCoordinator do
 
       {:stop, :normal, response, new_state}
     else
+      if is_valid, do: TakeOff.Subscription.cancel_if_exists(booking.user, booking.flight_id)
       {:reply, response, new_state}
     end
   end

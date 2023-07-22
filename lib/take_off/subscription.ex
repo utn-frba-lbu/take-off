@@ -30,6 +30,10 @@ defmodule TakeOff.Subscription do
     end)
   end
 
+  def cancel_if_exists(user, flight_id) do
+    GenServer.cast(__MODULE__, {:cancel_if_exists, user, flight_id})
+  end
+
   # SERVER METHODS
 
   def handle_continue(:load_state, state) do
@@ -73,6 +77,36 @@ defmodule TakeOff.Subscription do
       end)
     end)
 
+    broadcast(:remove_flight_subscriptions, flight.id)
+
     {:noreply, Map.merge(state, %{subscriptions: subscriptions})}
+  end
+
+  def handle_cast({:cancel_if_exists, user, flight_id}, state) do
+    Logger.info("cancelling subscription for user #{user} and flight #{flight_id}")
+    flight_subscriptions = Map.get(state.subscriptions, flight_id, [])
+    if Enum.empty?(flight_subscriptions) do
+      {:noreply, state}
+    else
+      new_flight_subscriptions = Enum.reject(flight_subscriptions, fn subscription -> subscription.user == user end)
+      new_subscriptions = Map.put(state.subscriptions, flight_id, new_flight_subscriptions)
+
+      # Broadcast new flight subscriptions to all nodes
+      broadcast(:update_flight_subscriptions, {flight_id, new_flight_subscriptions})
+
+      {:noreply, Map.merge(state, %{subscriptions: new_subscriptions})}
+    end
+  end
+
+  def handle_cast({:update_flight_subscriptions, {flight_id, subscriptions}}, state) do
+    Logger.info("updating subscriptions for flight #{flight_id}")
+    new_subscriptions = Map.put(state.subscriptions, flight_id, subscriptions)
+    {:noreply, Map.merge(state, %{subscriptions: new_subscriptions})}
+  end
+
+  def handle_cast({:remove_flight_subscriptions, flight_id}, state) do
+    Logger.info("removing subscriptions for flight #{flight_id}")
+    new_subscriptions = Map.delete(state.subscriptions, flight_id)
+    {:noreply, Map.merge(state, %{subscriptions: new_subscriptions})}
   end
 end
