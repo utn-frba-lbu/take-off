@@ -67,7 +67,9 @@ defmodule TakeOff.Alert do
       flight_destination == alert_destination &&
       case alert do
         %{date: date} -> flight_date == date
-        %{month: month} -> flight_date |> Date.to_erl |> elem(1) == month
+        %{month: month, year: year} -> flight_date
+          |> Date.to_erl
+          |> then(fn date_parts -> elem(date_parts, 0) == year && elem(date_parts, 1) == month end)
       end
 
     end)

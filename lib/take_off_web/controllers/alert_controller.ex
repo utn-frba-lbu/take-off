@@ -22,10 +22,10 @@ defmodule TakeOffWeb.AlertController do
     |> json(%{status: "ok"})
   end
 
-  def add(conn, %{"user" => user, "month" => month, "origin" => origin, "destination" => destination, "webhook_uri" => webhook_uri}) do
-    Logger.info("Adding alert: #{inspect user} #{inspect month} #{inspect origin} #{inspect destination}")
+  def add(conn, %{"user" => user, "month" => month, "year" => year, "origin" => origin, "destination" => destination, "webhook_uri" => webhook_uri}) do
+    Logger.info("Adding alert: #{inspect user} #{inspect month} #{inspect year} #{inspect origin} #{inspect destination}")
 
-    TakeOff.Alert.add(%{user: user, month: month, origin: origin, destination: destination, webhook_uri: webhook_uri})
+    TakeOff.Alert.add(%{user: user, month: month, year: year, origin: origin, destination: destination, webhook_uri: webhook_uri})
 
     conn
     |> put_status(:ok)
