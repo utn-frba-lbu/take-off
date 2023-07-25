@@ -53,4 +53,13 @@ defmodule TakeOffWeb.FlightController do
     |> put_status(:ok)
     |> json(%{status: "ok"})
   end
+
+  def flight_subscriptions(conn, %{"id" => flight_id}) do
+    Logger.info("Getting subscriptions for flight #{inspect flight_id}")
+    subs = TakeOff.Subscription.flight_subscriptions(flight_id)
+
+    conn
+    |> put_status(:ok)
+    |> json(%{status: "ok", value: subs})
+  end
 end

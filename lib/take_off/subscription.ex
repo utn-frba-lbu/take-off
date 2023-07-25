@@ -20,6 +20,10 @@ defmodule TakeOff.Subscription do
     broadcast(:add, subscription)
   end
 
+  def flight_subscriptions(flight_id) do
+    GenServer.call(__MODULE__, {:flight_subscriptions, flight_id})
+  end
+
   def notify(flight) do
     GenServer.cast(__MODULE__, {:notify, flight})
   end
@@ -53,6 +57,11 @@ defmodule TakeOff.Subscription do
       :initializing -> {:reply, :initializing, state}
       :ready -> {:reply, state.subscriptions, state}
     end
+  end
+
+  def handle_call({:flight_subscriptions, flight_id}, _from, state) do
+    Logger.info("received handle_call: flight_subscriptions")
+    {:reply, Map.get(state.subscriptions, flight_id, []), state}
   end
 
   def handle_cast({:add, subscription}, state) do
