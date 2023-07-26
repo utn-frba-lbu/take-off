@@ -67,12 +67,22 @@ defmodule TakeOff.BookingCoordinator do
     end)
   end
 
+  def get_state_from_node(node, flight_id) do
+    try do
+      GenServer.call({TakeOff.Flight, node}, {:get_by_id, flight_id})
+    rescue
+      _ -> nil
+    catch
+      :exit, e -> nil
+    end
+  end
+
   # SERVER METHODS
 
   def handle_continue(:load_state, state) do
     Logger.info("trying to load state")
 
-    flight = Enum.map([Node.self | Node.list], fn node -> GenServer.call {TakeOff.Flight, node}, {:get_by_id, state[:flight_id]} end)
+    flight = Enum.map([Node.self | Node.list], fn node -> get_state_from_node(node, state.flight_id) end)
       |> Enum.max_by(fn node_flight -> if node_flight, do: node_flight.updated_at, else: -1 end)
 
     time_to_close = DateTime.add(flight.created_at, flight.offer_duration, :day) |> DateTime.diff(DateTime.utc_now(), :millisecond)
