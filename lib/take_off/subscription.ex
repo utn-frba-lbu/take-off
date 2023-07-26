@@ -76,19 +76,23 @@ defmodule TakeOff.Subscription do
 
     Logger.info("state: #{inspect state}")
 
-    Logger.info("sending flight #{flight.id} to #{inspect flight_subscriptions}")
+    if flight_subscriptions == nil do
+      {:noreply, state}
+    else
+      Logger.info("sending flight #{flight.id} to #{inspect flight_subscriptions}")
 
-    Enum.map(flight_subscriptions, fn subscription ->
-      Task.start(fn ->
-        Logger.info("sending subscription to #{subscription.user}")
+      Enum.map(flight_subscriptions, fn subscription ->
+        Task.start(fn ->
+          Logger.info("sending subscription to #{subscription.user}")
 
-        HTTPoison.post(subscription.webhook_uri, Poison.encode!(flight))
+          HTTPoison.post(subscription.webhook_uri, Poison.encode!(flight))
+        end)
       end)
-    end)
 
-    broadcast(:remove_flight_subscriptions, flight.id)
+      broadcast(:remove_flight_subscriptions, flight.id)
 
-    {:noreply, Map.merge(state, %{subscriptions: subscriptions})}
+      {:noreply, Map.merge(state, %{subscriptions: subscriptions})}
+    end
   end
 
   def handle_cast({:cancel_if_exists, user, flight_id}, state) do

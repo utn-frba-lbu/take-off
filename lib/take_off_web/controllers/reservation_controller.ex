@@ -26,11 +26,14 @@ defmodule TakeOffWeb.ReservationController do
       }
     )
 
+    Logger.info("response: #{inspect response}")
+
     conn
     |> put_status(
       case response.status do
         :booking_accepted -> :ok
         :flight_not_found -> :not_found
+        :booking_denied -> :unprocessable_entity
         :flight_closed -> :unprocessable_entity
         _ -> :internal_server_error
       end

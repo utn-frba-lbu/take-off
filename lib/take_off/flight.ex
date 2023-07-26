@@ -22,10 +22,10 @@ defmodule TakeOff.Flight do
     flight = Map.merge(params, %{id: id, status: :open, created_at: now, updated_at: now})
 
     TakeOff.Alert.notify(flight)
-
     broadcast(:add, flight)
-
     TakeOff.BookingCoordinator.spawn(flight.id)
+
+    flight
   end
 
   def broadcast(method, data) do

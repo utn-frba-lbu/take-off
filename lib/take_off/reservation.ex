@@ -14,30 +14,35 @@ defmodule TakeOff.Reservation do
     GenServer.call(__MODULE__, :index)
   end
 
-  defp confirm_booking(booking) do
+  defp confirm_booking(coordinator_pid, booking) do
     # Send the booking attempt to the coordinator
-    pid = TakeOff.BookingCoordinator.get_coordinator_pid(booking.flight_id)
+    try do
+      response = GenServer.call(coordinator_pid, {:book, booking})
+      GenServer.cast(__MODULE__, {response, booking})
 
-    response = GenServer.call(pid, {:book, booking})
-    GenServer.cast(__MODULE__, {response, booking})
-
-    if response == :booking_accepted do
-      Logger.info("booking accepted")
-      %{status: response, message: "booking accepted"}
-    else
-      Logger.info("booking denied")
-      %{status: response, message: "not enough seats available"}
+      if response == :booking_accepted do
+        Logger.info("booking accepted")
+        %{status: response, message: "booking accepted"}
+      else
+        Logger.info("booking denied")
+        %{status: response, message: "not enough seats available"}
+      end
+    rescue
+      _ -> %{status: :booking_denied, message: "error booking flight"}
+    catch
+      :exit, e -> %{status: :booking_denied, message: "coordinator exited"}
     end
   end
 
   # Reservation { user: "123", flight_id: 123, seats: {window: 10} }
   def book(booking) do
-    # Nice to have: Check if the seat is available, raise if not
+    pid = TakeOff.BookingCoordinator.get_coordinator_pid(booking.flight_id)
     flight = TakeOff.Flight.get_by_id(booking.flight_id)
     case flight do
       nil -> %{status: :flight_not_found, message: "flight not found"}
       %{status: :closed} -> %{status: :flight_closed, message: "flight closed"}
-      _ -> confirm_booking(booking)
+      _ when pid == nil -> %{status: :flight_closed, message: "flight closed"}
+      _ -> confirm_booking(pid, booking)
     end
   end
 

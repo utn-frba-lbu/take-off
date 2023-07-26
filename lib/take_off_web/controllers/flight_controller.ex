@@ -23,7 +23,7 @@ defmodule TakeOffWeb.FlightController do
 
     {:ok, datetime, _} = DateTime.from_iso8601(datetime)
 
-    TakeOff.Flight.add(
+    created_flight = TakeOff.Flight.add(
       %{
         type: type,
         seats: TakeOff.Util.keys_to_atoms(seats),
@@ -35,7 +35,7 @@ defmodule TakeOffWeb.FlightController do
     )
     conn
     |> put_status(:ok)
-    |> json(%{status: "ok"})
+    |> json(%{status: "ok", value: created_flight})
   end
 
   def add(conn, _) do
