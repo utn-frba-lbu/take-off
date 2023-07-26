@@ -38,13 +38,23 @@ defmodule TakeOff.Subscription do
     GenServer.cast(__MODULE__, {:cancel_if_exists, user, flight_id})
   end
 
+  def get_state_from_node(node) do
+    try do
+      GenServer.call({__MODULE__, node}, :index)
+    rescue
+      _ -> nil
+    catch
+      :exit, e -> nil
+    end
+  end
+
   # SERVER METHODS
 
   def handle_continue(:load_state, state) do
     Logger.info("trying to load state")
 
-    subscriptions = Stream.map(Node.list, fn node -> GenServer.call({__MODULE__, node}, :index) end)
-      |> Enum.find(%{}, fn subscriptions -> subscriptions != :initializing end)
+    subscriptions = Stream.map(Node.list, fn node -> get_state_from_node(node) end)
+      |> Enum.find(%{}, fn subscriptions -> subscriptions != nil and subscriptions != :initializing end)
 
     Logger.info("subscriptions: #{inspect subscriptions}")
 

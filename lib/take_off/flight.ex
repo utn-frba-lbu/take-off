@@ -38,13 +38,23 @@ defmodule TakeOff.Flight do
     GenServer.call(__MODULE__, {:get_by_id, flight_id})
   end
 
+  def get_state_from_node(node) do
+    try do
+      GenServer.call({__MODULE__, node}, :index)
+    rescue
+      _ -> nil
+    catch
+      :exit, e -> nil
+    end
+  end
+
   # SERVER METHODS
 
   def handle_continue(:load_state, state) do
     Logger.info("trying to load state")
 
-    flights = Stream.map(Node.list, fn node -> GenServer.call({__MODULE__, node}, :index) end)
-      |> Enum.find(%{}, fn flights -> flights != :initializing end)
+    flights = Stream.map(Node.list, fn node -> get_state_from_node(node) end)
+      |> Enum.find(%{}, fn flights -> flights != nil and flights != :initializing end)
 
     Logger.info("flights: #{inspect flights}")
 

@@ -30,13 +30,23 @@ defmodule TakeOff.Alert do
     end)
   end
 
+  def get_state_from_node(node) do
+    try do
+      GenServer.call({__MODULE__, node}, :index)
+    rescue
+      _ -> nil
+    catch
+      :exit, e -> nil
+    end
+  end
+
   # SERVER METHODS
 
   def handle_continue(:load_state, state) do
     Logger.info("trying to load state")
 
-    alerts = Stream.map(Node.list, fn node -> GenServer.call({__MODULE__, node}, :index) end)
-      |> Enum.find([], fn alerts -> alerts != :initializing end)
+    alerts = Stream.map(Node.list, fn node -> get_state_from_node(node) end)
+      |> Enum.find([], fn alerts -> alerts != nil and alerts != :initializing end)
 
     Logger.info("alerts: #{inspect alerts}")
 
