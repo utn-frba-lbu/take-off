@@ -62,4 +62,17 @@ defmodule TakeOffWeb.FlightController do
     |> put_status(:ok)
     |> json(%{status: "ok", value: subs})
   end
+
+  def coordinator_node(conn, %{"id" => flight_id}) do
+    coordinator_node = TakeOff.BookingCoordinator.get_coordinator_node(flight_id)
+
+    {status, value} = case coordinator_node do
+      nil -> {:not_found, nil}
+      _ -> {:ok, coordinator_node}
+    end
+
+    conn
+    |> put_status(status)
+    |> json(%{status: status, value: value})
+  end
 end

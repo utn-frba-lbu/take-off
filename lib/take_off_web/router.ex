@@ -32,6 +32,7 @@ defmodule TakeOffWeb.Router do
     post "/", FlightController, :add
     post "/:id/subscriptions",  FlightController, :subscribe
     get "/:id/subscriptions",  FlightController, :flight_subscriptions
+    get "/:id/coordinator", FlightController, :coordinator_node
   end
 
   scope "/alerts", TakeOffWeb do

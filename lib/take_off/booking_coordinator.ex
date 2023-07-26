@@ -36,6 +36,15 @@ defmodule TakeOff.BookingCoordinator do
     end
   end
 
+  def get_coordinator_node(flight_id) do
+    pid = get_coordinator_pid(flight_id)
+    if pid == nil do
+      nil
+    else
+      GenServer.call(pid, :get_node)
+    end
+  end
+
   def update_flight(flight, seats) do
     # Update state
     updated_seats = Enum.map(flight.seats, fn {type, amount} ->
@@ -98,6 +107,10 @@ defmodule TakeOff.BookingCoordinator do
       if is_valid, do: TakeOff.Subscription.cancel_if_exists(booking.user, booking.flight_id)
       {:reply, response, new_state}
     end
+  end
+
+  def handle_call(:get_node, _from, state) do
+    {:reply, Node.self(), state}
   end
 
   def handle_info(:close_flight, state) do
