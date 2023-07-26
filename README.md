@@ -6,8 +6,9 @@ To start your Phoenix server:
 - Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server` or run the nodes startup script `./node_X.bash`
 
 ## With Docker
+
 - Run `docker build . -t takeoff` to build the image
-- Then run `docker run -e PORT={PORT} -e NAME={NAME} -p {PORT}:{PORT} -d takeoff` with any `PORT` and a `NAME` like `PORT=4000` `NAME=a@127.0.0.1`
+- Then run `docker run -e PORT={PORT} -e NAME={NAME} --network host -d takeoff` with any `PORT` and a `NAME`. For example: `docker run -e PORT=4000 -e NAME=a@127.0.0.1 --network host -d takeoff`
 
 ## Escenarios
 
