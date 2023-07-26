@@ -56,6 +56,18 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+config :take_off, TakeOff.PromEx,
+       disabled: false,
+       manual_metrics_start_delay: :no_delay,
+       drop_metrics_groups: [],
+       grafana: [
+        host: "http://127.0.0.1:3000",
+        upload_dashboards_on_start: true,
+        username: "admin",
+        password: "admin"
+       ],
+       metrics_server: :disabled
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

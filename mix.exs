@@ -51,7 +51,8 @@ defmodule TakeOff.MixProject do
       {:horde, "~> 0.8.3"},
       {:uuid, "~>1.1.8"},
       {:poison, "~> 5.0"},
-      {:httpoison, "~> 2.0"}
+      {:httpoison, "~> 2.0"},
+      {:prom_ex, "~> 1.8.0"}
     ]
   end
 
