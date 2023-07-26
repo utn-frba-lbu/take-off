@@ -41,7 +41,7 @@ defmodule TakeOff.Reservation do
     case flight do
       nil -> %{status: :flight_not_found, message: "flight not found"}
       %{status: :closed} -> %{status: :flight_closed, message: "flight closed"}
-      _ when pid == nil -> %{status: :flight_closed, message: "flight closed"}
+      _ when pid == nil -> %{status: :flight_not_available, message: "flight is not available"}
       _ -> confirm_booking(pid, booking)
     end
   end
